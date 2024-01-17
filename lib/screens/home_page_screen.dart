@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
+import 'package:shimmer/shimmer.dart';
 
 class HomePageScreen extends ConsumerStatefulWidget {
   const HomePageScreen({Key? key}) : super(key: key);
@@ -178,7 +179,18 @@ class _ImageBoxState extends State<ImageBox> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     var imageWidget = CachedNetworkImage(
       imageUrl: widget.imageUrl,
-      placeholder: (context, url) => const CircularProgressIndicator(),
+      placeholder: (context, url) => Shimmer.fromColors(
+        baseColor: Colors.black,
+        highlightColor: Colors.grey.shade700,
+        child: Container(
+          width: 100,
+          height: 200,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            color: Colors.white
+          ),
+        ),
+      ),
       errorWidget: (context, url, error) => const Icon(Icons.error),
       fit: BoxFit.contain,
     );
@@ -220,7 +232,7 @@ class _ImageBoxState extends State<ImageBox> with TickerProviderStateMixin {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: _shrink ? const EdgeInsets.fromLTRB(15, 0, 15, 8) : const EdgeInsets.fromLTRB(8, 0, 8, 8),
+        padding: _shrink ? const EdgeInsets.fromLTRB(20, 0, 20, 20) : const EdgeInsets.fromLTRB(8, 0, 8, 8),
         child: imageWidget,
       ),
     );
