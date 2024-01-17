@@ -19,6 +19,8 @@ class _HomePageScreenState extends ConsumerState<HomePageScreen> {
 
   final PagingController<int, String> _pagingController = PagingController(firstPageKey: 0);
 
+  bool _list = false;
+
   @override
   void initState() {
     _pagingController.addPageRequestListener((pageKey) {
@@ -31,10 +33,10 @@ class _HomePageScreenState extends ConsumerState<HomePageScreen> {
     var random = Random();
     try {
       final newItems = [
-        "https://picsum.photos/${100 * (1 + random.nextInt(10))}/${100 * (1 + random.nextInt(10))}",
-        "https://picsum.photos/${100 * (1 + random.nextInt(10))}/${100 * (1 + random.nextInt(10))}",
-        "https://picsum.photos/${100 * (1 + random.nextInt(10))}/${100 * (1 + random.nextInt(10))}",
-        "https://picsum.photos/${100 * (1 + random.nextInt(10))}/${100 * (1 + random.nextInt(10))}",
+        "https://picsum.photos/seed/${random.nextInt(999999)}/${100 * (1 + random.nextInt(10))}/${100 * (1 + random.nextInt(10))}",
+        "https://picsum.photos/seed/${random.nextInt(999999)}/${100 * (1 + random.nextInt(10))}/${100 * (1 + random.nextInt(10))}",
+        "https://picsum.photos/seed/${random.nextInt(999999)}/${100 * (1 + random.nextInt(10))}/${100 * (1 + random.nextInt(10))}",
+        "https://picsum.photos/seed/${random.nextInt(999999)}/${100 * (1 + random.nextInt(10))}/${100 * (1 + random.nextInt(10))}",
       ];
       final isLastPage = newItems.length < _pageSize;
       if (isLastPage) {
@@ -71,40 +73,50 @@ class _HomePageScreenState extends ConsumerState<HomePageScreen> {
               //Body
               Row(
                 children: [
-                  Expanded(
-                    child: PagedMasonryGridView<int, String>.count(
-                      padding: const EdgeInsets.all(0),
-                      physics: const PageScrollPhysics(),
-                      pagingController: _pagingController,
-                      builderDelegate: PagedChildBuilderDelegate(
-                        itemBuilder: (context, item, index) {
-                          return Padding(
-                            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                            child: CachedNetworkImage(
-                              imageUrl: item,
-                              placeholder: (context, url) => const CircularProgressIndicator(),
-                              errorWidget: (context, url, error) => const Icon(Icons.error),
-                              fit: BoxFit.contain,
+                  !_list
+                      ? Expanded(
+                          child: PagedMasonryGridView<int, String>.count(
+                            padding: const EdgeInsets.all(0),
+                            physics: const PageScrollPhysics(),
+                            pagingController: _pagingController,
+                            builderDelegate: PagedChildBuilderDelegate(
+                              itemBuilder: (context, item, index) {
+                                return ImageBox(
+                                  imageUrl: item,
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
-                      crossAxisCount: 2,
-                    ),
-                  ),
+                            crossAxisCount: 2,
+                          ),
+                        )
+                      : Expanded(
+                          child: PagedListView<int, String>(
+                            padding: const EdgeInsets.all(0),
+                            physics: const PageScrollPhysics(),
+                            pagingController: _pagingController,
+                            builderDelegate: PagedChildBuilderDelegate(
+                              itemBuilder: (context, item, index) {
+                                return ImageBox(
+                                  imageUrl: item,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
                 ],
               ),
 
               //Header
               Container(
-                height: screenHeight * 0.07,
                 width: screenWidth,
                 decoration: BoxDecoration(
                   color: Colors.black.withAlpha(180),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    const SizedBox(height: 20),
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
@@ -121,15 +133,17 @@ class _HomePageScreenState extends ConsumerState<HomePageScreen> {
                             ),
                           ),
                           const Spacer(),
-                          const Icon(
-                            Icons.grid_view_outlined,
-                            color: Colors.white,
-                            size: 30,
-                          ),
-                          const Icon(
-                            Icons.list_alt,
-                            color: Colors.white,
-                            size: 30,
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _list = !_list;
+                              });
+                            },
+                            child: Icon(
+                              _list ? Icons.grid_view_outlined : Icons.list_alt,
+                              color: Colors.white,
+                              size: 30,
+                            ),
                           )
                         ],
                       ),
@@ -142,5 +156,141 @@ class _HomePageScreenState extends ConsumerState<HomePageScreen> {
         ),
       );
     });
+  }
+}
+
+class ImageBox extends StatefulWidget {
+  const ImageBox({
+    super.key,
+    required this.imageUrl,
+  });
+
+  final String imageUrl;
+
+  @override
+  State<ImageBox> createState() => _ImageBoxState();
+}
+
+class _ImageBoxState extends State<ImageBox> with TickerProviderStateMixin {
+  bool _shrink = false;
+
+  @override
+  Widget build(BuildContext context) {
+    var imageWidget = CachedNetworkImage(
+      imageUrl: widget.imageUrl,
+      placeholder: (context, url) => const CircularProgressIndicator(),
+      errorWidget: (context, url, error) => const Icon(Icons.error),
+      fit: BoxFit.contain,
+    );
+    return GestureDetector(
+      onTapDown: (details) {
+        setState(() {
+          _shrink = true;
+        });
+      },
+      onTapUp: (details) {
+        setState(() {
+          _shrink = false;
+        });
+        showModalBottomSheet(
+          backgroundColor: Colors.transparent,
+          context: context,
+          builder: (context) {
+            return DetailsBottomSheet(
+              imageUrl: widget.imageUrl,
+              imageWidget: imageWidget,
+            );
+          },
+          isScrollControlled: true,
+          transitionAnimationController: AnimationController(
+            vsync: this,
+            duration: const Duration(milliseconds: 800),
+          ),
+        );
+      },
+      onLongPress: () {
+        setState(() {
+          _shrink = true;
+        });
+      },
+      onLongPressUp: () {
+        setState(() {
+          _shrink = false;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: _shrink ? const EdgeInsets.fromLTRB(15, 0, 15, 8) : const EdgeInsets.fromLTRB(8, 0, 8, 8),
+        child: imageWidget,
+      ),
+    );
+  }
+}
+
+class DetailsBottomSheet extends StatelessWidget {
+  const DetailsBottomSheet({
+    super.key,
+    required this.imageUrl,
+    required this.imageWidget,
+  });
+
+  final String imageUrl;
+  final CachedNetworkImage imageWidget;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.7,
+      child: Stack(
+        alignment: Alignment.center,
+        fit: StackFit.expand,
+        children: [
+          Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+            ),
+            width: double.infinity,
+            child: Opacity(
+              opacity: 0.3,
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(top: 30),
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              children: [
+                Container(
+                  width: double.infinity,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: imageWidget,
+                ),
+                const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Text(
+                    "URL used:\n${imageWidget.imageUrl}",
+                    style: GoogleFonts.labrada(
+                      fontSize: 20,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 50),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
